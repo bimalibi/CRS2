@@ -2,9 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Dynamic.Core;
 using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
+using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
 using YSJU.ClientRegistrationSystem.AppEntities.ClientDetails;
@@ -66,6 +68,74 @@ namespace YSJU.ClientRegistrationSystem.AppServices.TransactionManagement
             catch (Exception)
             {
                 Logger.LogError(nameof(CreateSellTransactionAsync));
+                throw;
+            }
+        }
+
+        public async Task<PagedResultDto<TransactionResponseDto>> PagedAndSortedSellTrasactionListAsync(PagedAndSortedTransactionDto input)
+        {
+            try
+            {
+                var clientPersonalDetailQuery = await _clientPersonalDetailRepository.GetQueryableAsync();
+                var productQuery = await _productRepository.GetQueryableAsync();
+                var sellTrasactionQuery = await _sellTransactionRepository.GetQueryableAsync();
+                var productCategoryQuery = await _productCategoryRepository.GetQueryableAsync();
+
+                var query = from transaction in sellTrasactionQuery
+                            join client in clientPersonalDetailQuery on transaction.ClientId equals client.Id into clientLeft
+                            from client in clientLeft.DefaultIfEmpty()
+                            join product in productQuery on transaction.ProductId equals product.Id into productLeft
+                            from product in productLeft.DefaultIfEmpty()
+                            join productCategory in productCategoryQuery on product.ProductCategoryId equals productCategory.Id into productCategoryLeft
+                            from productCategory in productCategoryLeft.DefaultIfEmpty()
+                            select new TransactionResponseDto
+                            {
+                                ClientId = client.Id,
+                                ClientName = client.FirstName + " " + client.MiddleName + " " + client.LastName,
+                                ProductId = product.Id,
+                                ProductName = product.Name,
+                                Quantity = transaction.Quantity,
+                                SellPrice = transaction.SellPrice,
+                                ProductCategoryId = productCategory.Id,
+                                ProductCategoryName = productCategory.DisplayName,
+                            };
+
+                if (!string.IsNullOrWhiteSpace(input.SearchKeyword))
+                {
+                    query = query.Where(x =>
+                        x.ClientId.ToString().Contains(input.SearchKeyword.ToLower()) ||
+                        x.ClientName.ToLower().Contains(input.SearchKeyword.ToLower()) ||
+                        x.ProductName.ToLower().Contains(input.SearchKeyword.ToLower()) ||
+                        x.ProductCategoryName.ToLower().Contains(input.SearchKeyword.ToLower()));
+                }
+
+                if (input.ProductCategoryId != null)
+                {
+                    query = query.Where(x => x.ProductCategoryId == input.ProductCategoryId);
+                }
+
+                if (input.ProductId != null)
+                {
+                    query = query.Where(x => x.ProductId == input.ProductId);
+                }
+
+                if (input.ClientIds != null)
+                {
+                    query = query.Where(x => x.ClientId == input.ClientIds);
+                }
+
+                var result = query.OrderBy(input.Sorting)
+                                  .Skip(input.SkipCount)
+                                  .Take(input.MaxResultCount).ToList();
+
+                var totalCount = query.Count();
+                var response = new PagedResultDto<TransactionResponseDto>(totalCount, result);
+
+                return response;
+            }
+            catch (Exception)
+            {
+                Logger.LogError(nameof(PagedAndSortedSellTrasactionListAsync));
                 throw;
             }
         }
