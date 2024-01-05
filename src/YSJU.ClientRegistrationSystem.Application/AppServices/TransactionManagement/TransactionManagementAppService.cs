@@ -29,11 +29,13 @@ namespace YSJU.ClientRegistrationSystem.AppServices.TransactionManagement
         public TransactionManagementAppService(
             IRepository<ClientDetail, Guid> clientPersonalDetailRepository,
             IRepository<Product, Guid> productRepository = null,
-            IRepository<ProductCategory, Guid> productCategoryRepository = null)
+            IRepository<ProductCategory, Guid> productCategoryRepository = null,
+            IRepository<SellTransaction, Guid> sellTransactionRepository = null)
         {
             _clientPersonalDetailRepository = clientPersonalDetailRepository;
             _productRepository = productRepository;
             _productCategoryRepository = productCategoryRepository;
+            _sellTransactionRepository = sellTransactionRepository;
         }
 
         public async Task<ResponseDto<TransactionResponseDto>> CreateSellTransactionAsync(CreateTransactionDto input)
@@ -72,7 +74,7 @@ namespace YSJU.ClientRegistrationSystem.AppServices.TransactionManagement
             }
         }
 
-        public async Task<PagedResultDto<TransactionResponseDto>> PagedAndSortedSellTrasactionListAsync(PagedAndSortedTransactionDto input)
+        public async Task<PagedResultDto<TransactionResponseDto>> GetPagedAndSortedSellTrasactionListAsync(PagedAndSortedTransactionDto input)
         {
             try
             {
@@ -80,6 +82,14 @@ namespace YSJU.ClientRegistrationSystem.AppServices.TransactionManagement
                 var productQuery = await _productRepository.GetQueryableAsync();
                 var sellTrasactionQuery = await _sellTransactionRepository.GetQueryableAsync();
                 var productCategoryQuery = await _productCategoryRepository.GetQueryableAsync();
+
+
+                if (input.Sorting.IsNullOrWhiteSpace())
+                {
+                    input.Sorting = "CreationTime";
+                }
+
+                input.Sorting = $"{input.Sorting} {input.SortOrder}";
 
                 var query = from transaction in sellTrasactionQuery
                             join client in clientPersonalDetailQuery on transaction.ClientId equals client.Id into clientLeft
@@ -98,6 +108,7 @@ namespace YSJU.ClientRegistrationSystem.AppServices.TransactionManagement
                                 SellPrice = transaction.SellPrice,
                                 ProductCategoryId = productCategory.Id,
                                 ProductCategoryName = productCategory.DisplayName,
+                                CreationTime = transaction.CreationTime,
                             };
 
                 if (!string.IsNullOrWhiteSpace(input.SearchKeyword))
@@ -135,7 +146,7 @@ namespace YSJU.ClientRegistrationSystem.AppServices.TransactionManagement
             }
             catch (Exception)
             {
-                Logger.LogError(nameof(PagedAndSortedSellTrasactionListAsync));
+                Logger.LogError(nameof(GetPagedAndSortedSellTrasactionListAsync));
                 throw;
             }
         }

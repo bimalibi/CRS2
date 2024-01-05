@@ -17,6 +17,7 @@ using Volo.Abp.TenantManagement.EntityFrameworkCore;
 using YSJU.ClientRegistrationSystem.AppEntities.ClientDetails;
 using YSJU.ClientRegistrationSystem.AppEntities.ProductCategories;
 using YSJU.ClientRegistrationSystem.AppEntities.Products;
+using YSJU.ClientRegistrationSystem.AppEntities.Transactions;
 
 namespace YSJU.ClientRegistrationSystem.EntityFrameworkCore;
 
@@ -54,6 +55,7 @@ public class ClientRegistrationSystemDbContext :
     public DbSet<ProductCategory> ProductCategories { get; set; }
     public DbSet<Product> Products { get; set; }
     public DbSet<ClientDetail> ClientDetails { get; set; }
+    public DbSet<SellTransaction> SellTransactions { get; set; }
 
     // Tenant Management
     public DbSet<Tenant> Tenants { get; set; }
@@ -112,6 +114,16 @@ public class ClientRegistrationSystemDbContext :
             b.Property(x => x.Address).IsRequired();
             b.Property(x => x.PhoneNumber).HasMaxLength(16).IsRequired();
             b.Property(x => x.Email).IsRequired();
+        });
+
+        builder.Entity<SellTransaction>(b =>
+        {
+            b.ToTable("SellTransactions");
+            b.ConfigureByConvention();
+            b.HasOne<ClientDetail>().WithMany().HasForeignKey(x => x.ClientId).IsRequired();
+            b.HasOne<Product>().WithMany().HasForeignKey(x => x.ProductId).IsRequired();
+            b.Property(x => x.SellPrice).IsRequired();
+            b.Property(x => x.Quantity).IsRequired();
         });
 
         var cascadeFKs = builder.Model.GetEntityTypes()

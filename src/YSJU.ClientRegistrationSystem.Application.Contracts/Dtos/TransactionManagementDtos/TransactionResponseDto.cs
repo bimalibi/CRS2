@@ -14,5 +14,6 @@ namespace YSJU.ClientRegistrationSystem.Dtos.TransactionManagementDtos
         public int SellPrice { get; set; }
         public Guid ProductCategoryId { get; set; }
         public string ProductCategoryName { get; set; }
+        public DateTime CreationTime { get; set; }
     }
 }
