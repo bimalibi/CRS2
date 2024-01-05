@@ -53,11 +53,6 @@ namespace YSJU.ClientRegistrationSystem.AppServices.ClientDetailManagement
                 var clientPersonalDetailQuery = await _clientPersonalDetailRepository.GetQueryableAsync();
                 var productQuery = await _productRepository.GetQueryableAsync();
 
-                if(!productQuery.Where(x => x.Id == input.ProductId).Any())
-                {
-                    throw new UserFriendlyException("Product not found", code: "400");
-                }
-
                 if (clientPersonalDetailQuery.Where(x => x.Email == input.Email).Any())
                 {
                     throw new UserFriendlyException("Email already exist", code: "400");
