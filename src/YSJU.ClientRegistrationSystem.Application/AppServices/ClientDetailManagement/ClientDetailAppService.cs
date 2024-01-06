@@ -63,10 +63,20 @@ namespace YSJU.ClientRegistrationSystem.AppServices.ClientDetailManagement
                     throw new UserFriendlyException("Phone number already exist", code: "400");
                 }
 
-                var nextClientId = clientPersonalDetailQuery.Select(x => x.ClientId).Max();
+                var nextClient = clientPersonalDetailQuery.Any();
+                int clientId = 0;
+                if (nextClient) 
+                {
+                    clientId = clientPersonalDetailQuery.Select(x => x.ClientId).Max() + 1;
+                }
+                else
+                {
+                    clientId = 100;
+                }
+
                 var newClientPersonalDetails = new ClientDetail
                 {
-                    ClientId = (nextClientId  == 0) ? 100 : nextClientId + 1,
+                    ClientId = clientId,
                     FirstName = input.FirstName,
                     MiddleName = input.MiddleName,
                     LastName = input.LastName,
@@ -127,7 +137,7 @@ namespace YSJU.ClientRegistrationSystem.AppServices.ClientDetailManagement
                                                     Address = clientPersonalDetail.Address,
                                                     PhoneNumber = clientPersonalDetail.PhoneNumber,
                                                     Email = clientPersonalDetail.Email,
-                                                    ProductCategoryName = productCategoryLeft.Select(x => x.DisplayName).ToList()
+                                                    Id = clientPersonalDetails.Id
                                                 }).FirstOrDefault();
 
                 Logger.LogInformation($"GetClientDetailById responded for User: {CurrentUser.Id}");
@@ -213,11 +223,6 @@ namespace YSJU.ClientRegistrationSystem.AppServices.ClientDetailManagement
                 input.Sorting = $"{input.Sorting} {input.SortOrder}";
 
                 var query = (from clientPersonalDetails in clientPersonalDetailQuery
-                             join sellTrasaction in sellTrasactionQuery on clientPersonalDetails.Id equals sellTrasaction.ClientId into sellTrasactionLeft
-                             from sellTrasaction in sellTrasactionLeft.DefaultIfEmpty()
-                             join product in productQuery on sellTrasaction.ProductId equals product.Id into productLeft
-                             from product in productLeft.DefaultIfEmpty()
-                             join productCategory in productCategoryQuery on product.ProductCategoryId equals productCategory.Id into productCategoryLeft
                              select new ClientDetailResponseDto
                              {
                                  ClientId = clientPersonalDetails.ClientId,
@@ -227,7 +232,8 @@ namespace YSJU.ClientRegistrationSystem.AppServices.ClientDetailManagement
                                  Address = clientPersonalDetails.Address,
                                  PhoneNumber = clientPersonalDetails.PhoneNumber,
                                  Email = clientPersonalDetails.Email,
-                                 ProductCategoryName = productCategoryLeft.Select(x => x.DisplayName).ToList()
+                                 CreationTime = clientPersonalDetails.CreationTime,
+                                 Id = clientPersonalDetails.Id,
                              });
 
                 if (!string.IsNullOrWhiteSpace(input.SearchKeyword))
@@ -241,16 +247,12 @@ namespace YSJU.ClientRegistrationSystem.AppServices.ClientDetailManagement
                         x.Email.ToLower().Contains(input.SearchKeyword.ToLower()));
                 }
 
-                if (input.ProductCategoryId != null)
-                {
-                    query = query.Where(x => x.ProductId == input.ProductCategoryId);
-                }
+                var totalCount = query.Count();
 
                 var result = query.OrderBy(input.Sorting)
                                   .Skip(input.SkipCount)
                                   .Take(input.MaxResultCount).ToList();
 
-                var totalCount = query.Count();
                 var response = new PagedResultDto<ClientDetailResponseDto>(totalCount, result);
 
                 return response;
@@ -306,11 +308,6 @@ namespace YSJU.ClientRegistrationSystem.AppServices.ClientDetailManagement
                 var productCategoryQuery = await _productCategoryRepository.GetQueryableAsync();
 
                 var query = (from clientPersonalDetails in clientPersonalDetailQuery
-                             join sellTrasaction in sellTrasactionQuery on clientPersonalDetails.Id equals sellTrasaction.ClientId into sellTrasactionLeft
-                             from sellTrasaction in sellTrasactionLeft.DefaultIfEmpty()
-                             join product in productQuery on sellTrasaction.ProductId equals product.Id into productLeft
-                             from product in productLeft.DefaultIfEmpty()
-                             join productCategory in productCategoryQuery on product.ProductCategoryId equals productCategory.Id into productCategoryLeft
                              select new ClientDetailResponseDto
                              {
                                  ClientId = clientPersonalDetails.ClientId,
@@ -320,7 +317,6 @@ namespace YSJU.ClientRegistrationSystem.AppServices.ClientDetailManagement
                                  Address = clientPersonalDetails.Address,
                                  PhoneNumber = clientPersonalDetails.PhoneNumber,
                                  Email = clientPersonalDetails.Email,
-                                 ProductCategoryName = productCategoryLeft.Select(x => x.DisplayName).ToList()
                              });
                 var clientDetailList = query.ToList();
                 var stream = new MemoryStream();
@@ -348,8 +344,6 @@ namespace YSJU.ClientRegistrationSystem.AppServices.ClientDetailManagement
                     worksheet.Cells[headingRowIndex, headingColumnIndex++].Value = "Email";
                     worksheet.Cells[headingRowIndex, headingColumnIndex].Style.Border.BorderAround(ExcelBorderStyle.Thin);
                     worksheet.Cells[headingRowIndex, headingColumnIndex++].Value = "Phone Number";
-                    worksheet.Cells[headingRowIndex, headingColumnIndex].Style.Border.BorderAround(ExcelBorderStyle.Thin);
-                    worksheet.Cells[headingRowIndex, headingColumnIndex++].Value = "Product Category";
                     headingRowIndex++;
                     var sNo = 1;
 
@@ -361,7 +355,6 @@ namespace YSJU.ClientRegistrationSystem.AppServices.ClientDetailManagement
                         worksheet.Cells[headingRowIndex, headingColumnIndex++].Value = rowData.Address;
                         worksheet.Cells[headingRowIndex, headingColumnIndex++].Value = rowData.Email;
                         worksheet.Cells[headingRowIndex, headingColumnIndex++].Value = rowData.PhoneNumber;
-                        worksheet.Cells[headingRowIndex, headingColumnIndex++].Value = rowData.ProductCategoryName;
                         headingRowIndex++;
                         sNo++;
                     }

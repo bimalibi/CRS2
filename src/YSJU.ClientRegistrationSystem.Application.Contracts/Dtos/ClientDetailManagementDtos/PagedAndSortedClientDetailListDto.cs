@@ -8,7 +8,7 @@ namespace YSJU.ClientRegistrationSystem.Dtos.ClientDetailDtos
     public class PagedAndSortedClientDetailListDto : PagedAndSortedResultRequestDto
     {
         public string? SearchKeyword { get; set; }
-        public string? SortOrder { get; set; } = "asc";
+        public string? SortOrder { get; set; } = "desc";
         public Guid? ProductCategoryId { get; set; }
     }
 }
