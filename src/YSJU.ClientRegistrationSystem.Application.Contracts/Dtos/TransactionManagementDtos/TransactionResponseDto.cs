@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Volo.Abp.Application.Dtos;
 
 namespace YSJU.ClientRegistrationSystem.Dtos.TransactionManagementDtos
 {
-    public class TransactionResponseDto
+    public class TransactionResponseDto : PagedAndSortedResultRequestDto
     {
+        public Guid Id { get; set; }
         public Guid ClientId { get; set; }
         public string ClientName { get; set; }
         public Guid ProductId { get; set; }

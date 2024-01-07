@@ -100,6 +100,7 @@ namespace YSJU.ClientRegistrationSystem.AppServices.TransactionManagement
                             from productCategory in productCategoryLeft.DefaultIfEmpty()
                             select new TransactionResponseDto
                             {
+                                Id = transaction.Id,
                                 ClientId = client.Id,
                                 ClientName = client.FirstName + " " + client.MiddleName + " " + client.LastName,
                                 ProductId = product.Id,

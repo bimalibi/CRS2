@@ -272,9 +272,15 @@ namespace YSJU.ClientRegistrationSystem.AppServices.ClientDetailManagement
                 Logger.LogDebug($"DeleteClientDetailAsync requested for User: {(CurrentUser.Id, clientPersonalDetailId)}");
 
                 var clientPersonalDetailQuery = await _clientPersonalDetailRepository.GetQueryableAsync();
+                var transactionQuery = await _sellTransactionRepository.GetQueryableAsync();
 
                 var clientPersonalDetail = clientPersonalDetailQuery.Where(x => x.Id == clientPersonalDetailId).FirstOrDefault()
                     ?? throw new UserFriendlyException("Client Personal Detail not found", code: "400");
+
+                if(transactionQuery.Where(x => x.ClientId == clientPersonalDetailId).Any())
+                {
+                    throw new UserFriendlyException("Plesae delete transaction data first", code: "400");
+                }
 
                 await _clientPersonalDetailRepository.DeleteAsync(clientPersonalDetail, true);
 

@@ -12,6 +12,7 @@ using Volo.Abp.Domain.Repositories;
 using YSJU.ClientRegistrationSystem.AppEntities.ClientDetails;
 using YSJU.ClientRegistrationSystem.AppEntities.ProductCategories;
 using YSJU.ClientRegistrationSystem.AppEntities.Products;
+using YSJU.ClientRegistrationSystem.AppEntities.Transactions;
 using YSJU.ClientRegistrationSystem.Dtos.ProductManagementDtos;
 using YSJU.ClientRegistrationSystem.Dtos.ResponseDtos;
 using YSJU.ClientRegistrationSystem.Interfaces.ProductManagement;
@@ -22,13 +23,16 @@ namespace YSJU.ClientRegistrationSystem.AppServices.ProductManagement
     {
         private readonly IRepository<Product, Guid> _productRepository;
         private readonly IRepository<ProductCategory, Guid> _productCategoryRepository;
+        private readonly IRepository<SellTransaction, Guid> _sellTransactionRepository;
 
         public ProductAppService(
             IRepository<Product, Guid> productRepository,
-            IRepository<ProductCategory, Guid> productCategoryRepository)
+            IRepository<ProductCategory, Guid> productCategoryRepository,
+            IRepository<SellTransaction, Guid> sellTransactionRepository)
         {
             _productRepository = productRepository;
             _productCategoryRepository = productCategoryRepository;
+            _sellTransactionRepository = sellTransactionRepository;
         }
 
         public async Task<ResponseDto<ProductResponseDto>> CreateProductAsync(CreateProductDto input)
@@ -260,16 +264,22 @@ namespace YSJU.ClientRegistrationSystem.AppServices.ProductManagement
             }
         }
 
-        public async Task<ResponseDto<ProductResponseDto>> DeleteProductAsync(Guid clientPersonalDetailId)
+        public async Task<ResponseDto<ProductResponseDto>> DeleteProductAsync(Guid productId)
         {
             try
             {
-                Logger.LogInformation($"DeleteClientDetailAsync requested by User: {CurrentUser.Id}");
-                Logger.LogDebug($"DeleteClientDetailAsync requested for User: {(CurrentUser.Id, clientPersonalDetailId)}");
+                Logger.LogInformation($"DeleteProductAsync requested by User: {CurrentUser.Id}");
+                Logger.LogDebug($"DeleteProductAsync requested for User: {(CurrentUser.Id, productId)}");
 
                 var productQuery = await _productRepository.GetQueryableAsync();
+                var transactionQuery = await _sellTransactionRepository.GetQueryableAsync();
 
-                var product = productQuery.Where(x => x.Id == clientPersonalDetailId).FirstOrDefault()
+                if (transactionQuery.Where(x => x.ProductId == productId).Any())
+                {
+                    throw new UserFriendlyException("Plesae delete transaction data first", code: "400");
+                }
+
+                var product = productQuery.Where(x => x.Id == productId).FirstOrDefault()
                     ?? throw new UserFriendlyException("Client Personal Detail not found", code: "400");
 
                 await _productRepository.DeleteAsync(product, true);
